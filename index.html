@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>极简待办 · 交互演示</title>
+<style>
+  :root {
+    --brand: #D81E44;
+    --brand-soft: #FFF0F3;
+    --ink: #161823;
+    --ink-2: #4D5059;
+    --ink-3: #6B6F7A;
+    --line: #F0F1F4;
+    --line-2: #E6E8EC;
+    --bg-sub: #F5F6F7;
+    --dark: #26261F;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #E9EBEF;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .stage { padding: 28px; }
+  .device {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 390px;
+    height: 844px;
+    border: 10px solid #161823;
+    border-radius: 46px;
+    background: #FFFFFF;
+    overflow: hidden;
+  }
+
+  /* ---------- 状态栏 ---------- */
+  .statusbar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 46px;
+    padding: 0 26px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .sb-right { display: flex; align-items: center; gap: 6px; }
+
+  /* ---------- 头部 ---------- */
+  .hd {
+    flex: none;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 6px 24px 0;
+  }
+  .hd-l { cursor: pointer; }
+  .date-row { display: flex; align-items: center; gap: 8px; }
+  .date { font-size: 31px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.2; }
+  .date-wd { font-size: 14px; font-weight: 500; color: var(--ink-3); padding-top: 8px; }
+  .chev {
+    width: 7px; height: 7px; margin-top: 10px;
+    border-right: 2px solid var(--ink-3);
+    border-bottom: 2px solid var(--ink-3);
+    transform: rotate(45deg);
+    border-radius: 1px;
+  }
+  .sub { margin-top: 2px; font-size: 12px; color: var(--ink-3); }
+
+  /* ---------- 日期条 ---------- */
+  .strip {
+    flex: none;
+    display: flex;
+    gap: 2px;
+    padding: 14px 18px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .strip::-webkit-scrollbar { display: none; }
+  .day {
+    position: relative;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    width: 44px;
+    height: 63px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background .18s ease, color .18s ease;
+  }
+  .day .wd { font-size: 11px; color: var(--ink-3); }
+  .day .dn { font-size: 18px; font-weight: 600; }
+  .day.sel { background: var(--ink); }
+  .day.sel .wd { color: rgba(255, 255, 255, .62); }
+  .day.sel .dn { color: #FFFFFF; }
+  .day.sel .dot { background: #FFFFFF; }
+  .day .dot {
+    position: absolute;
+    bottom: 7px;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--brand);
+    opacity: 0;
+  }
+  .day.has .dot { opacity: 1; }
+
+  /* ---------- 进度 ---------- */
+  .progress {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 24px 10px;
+  }
+  .ptrack { flex: 1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .pfill { height: 100%; width: 0; border-radius: 3px; background: var(--brand); transition: width .3s ease; }
+  .pnum { font-size: 11px; font-weight: 600; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+  /* ---------- 列表 ---------- */
+  .list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2px 18px 0;
+    scrollbar-width: none;
+  }
+  .list::-webkit-scrollbar { display: none; }
+  .task {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 6px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .task:last-of-type { border-bottom: none; }
+  .cb-hit { flex: none; padding: 2px 0; }
+  .cb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 23px; height: 23px;
+    border: 2px solid #D3D6DD;
+    border-radius: 50%;
+    transition: background .16s ease, border-color .16s ease;
+  }
+  .cb svg { opacity: 0; transition: opacity .16s ease; }
+  .task.done .cb { background: var(--brand); border-color: var(--brand); }
+  .task.done .cb svg { opacity: 1; }
+  .task-main { flex: 1; min-width: 0; }
+  .t { font-size: 15px; line-height: 1.45; color: var(--ink); word-break: break-all; }
+  .task.done .t { color: var(--ink-3); text-decoration: line-through; }
+  .m { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .tag {
+    height: 17px;
+    padding: 0 5px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 17px;
+  }
+  .tag.high { background: var(--brand-soft); color: #C4183B; }
+  .tag.mid { background: #FFF4E0; color: #8A5000; }
+  .tag.low { background: #F2F3F5; color: #5A5E69; }
+  .meta { font-size: 10.5px; color: var(--ink-3); }
+  .from { font-size: 10.5px; color: var(--brand); font-weight: 500; }
+
+  .empty { padding: 60px 0; text-align: center; }
+  .empty-t { font-size: 14px; color: var(--ink-2); font-weight: 600; }
+  .empty-s { margin-top: 6px; font-size: 12px; color: var(--ink-3); }
+  .all-done { padding: 26px 0; text-align: center; font-size: 12px; color: var(--ink-3); }
+
+  /* ---------- 底部操作区 ---------- */
+  .bottombar {
+    flex: none;
+    display: flex;
+    gap: 10px;
+    padding: 10px 20px 12px;
+    border-top: 1px solid var(--line);
+  }
+  .ghost {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 50px;
+    padding: 0 18px;
+    border-radius: 25px;
+    background: var(--bg-sub);
+    color: var(--ink-2);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .addbtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 50px;
+    border-radius: 25px;
+    background: var(--brand);
+    color: #FFFFFF;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .plus { position: relative; width: 12px; height: 12px; }
+  .plus::before, .plus::after {
+    content: ""; position: absolute; left: 0; top: 5px;
+    width: 12px; height: 2px; border-radius: 1px; background: #FFFFFF;
+  }
+  .plus::after { transform: rotate(90deg); }
+
+  /* ---------- 自定义 tabBar ---------- */
+  .tabbar {
+    flex: none;
+    display: flex;
+    padding: 6px 0 10px;
+    border-top: 1px solid var(--line);
+  }
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+  .tab.on { color: var(--brand); }
+
+  /* ---------- 弹层 ---------- */
+  .mask {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: rgba(22, 24, 35, .45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s ease;
+  }
+  .mask.on { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    z-index: 21;
+    padding: 0 20px 26px;
+    border-radius: 26px 26px 0 0;
+    background: #FFFFFF;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(102%);
+    transition: transform .26s cubic-bezier(.32, .72, 0, 1), visibility .26s;
+  }
+  .sheet.on {
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .handle {
+    width: 34px; height: 4px;
+    margin: 10px auto 12px;
+    border-radius: 2px;
+    background: #E3E5EA;
+  }
+  .st { margin-bottom: 14px; font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+
+  .field {
+    padding: 0 14px;
+    border-radius: 14px;
+    background: var(--bg-sub);
+    transition: background .16s ease;
+  }
+  .field input {
+    width: 100%;
+    height: 48px;
+    border: 0;
+    background: transparent;
+    outline: none;
+    font-size: 16px;
+    color: var(--ink);
+    font-family: inherit;
+  }
+  .field input::placeholder { color: #A2A6B0; }
+
+  .rowline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 50px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .lb { font-size: 13.5px; font-weight: 500; }
+  .rv { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-3); }
+  .rv .val { color: var(--ink); }
+  .rv .muted { color: #A2A6B0; }
+  .chev.r { width: 6px; height: 6px; margin: 0; border-color: #B4B8C1; }
+
+  .seg {
+    display: flex;
+    gap: 4px;
+    width: 168px;
+    padding: 3px;
+    border-radius: 12px;
+    background: var(--bg-sub);
+  }
+  .seg-item {
+    flex: 1;
+    height: 30px;
+    border-radius: 9px;
+    font-size: 12.5px;
+    line-height: 30px;
+    text-align: center;
+    color: var(--ink-3);
+    cursor: pointer;
+    transition: background .16s ease, color .16s ease;
+  }
+  .seg-item.on {
+    background: #FFFFFF;
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .hint { margin-top: 10px; font-size: 10.5px; line-height: 1.6; color: var(--ink-3); }
+  .actions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn {
+    flex: 1;
+    height: 48px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 48px;
+    cursor: pointer;
+  }
+  .btn.ghost { background: #FFFFFF; border: 1px solid var(--line-2); color: var(--ink-2); }
+  .btn.primary { background: var(--brand); color: #FFFFFF; }
+
+  /* ---------- 日历弹层 ---------- */
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .cal-title { font-size: 15px; font-weight: 700; }
+  .cal-nav {
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+  .cal-nav:hover { background: var(--bg-sub); }
+  .cal-wd { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+  .cal-wd span { font-size: 11px; color: var(--ink-3); text-align: center; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cell {
+    position: relative;
+    height: 42px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 42px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .cell.blank { cursor: default; }
+  .cell.sel { background: var(--ink); color: #FFFFFF; font-weight: 600; }
+  .cell.today { color: var(--brand); font-weight: 700; }
+  .cell.sel.today { color: #FFFFFF; }
+  .cell .pdot {
+    position: absolute;
+    bottom: 6px; left: 50%;
+    width: 4px; height: 4px;
+    margin-left: -2px;
+    border-radius: 50%;
+    background: var(--brand);
+  }
+  .cell.sel .pdot { background: #FFFFFF; }
+  .pk-foot {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .pk-foot .btn { height: 44px; line-height: 44px; background: var(--bg-sub); color: var(--ink-2); border: 0; }
+
+  /* ---------- 指派浮条 ---------- */
+  .assign-bar {
+    position: absolute;
+    left: 18px; right: 18px; bottom: 92px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 10px 10px 14px;
+    border-radius: 18px;
+    background: var(--dark);
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(40px);
+    transition: transform .28s cubic-bezier(.32, .72, 0, 1), opacity .2s ease, visibility .28s;
+  }
+  .assign-bar.on { visibility: visible; opacity: 1; transform: translateY(0); }
+  .ab-main { flex: 1; min-width: 0; }
+  .ab-t { font-size: 10px; color: rgba(255, 255, 255, .6); }
+  .ab-s {
+    margin-top: 2px;
+    font-size: 12.5px;
+    color: #FFFFFF;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .ab-btn {
+    flex: none;
+    height: 32px;
+    padding: 0 15px;
+    border-radius: 16px;
+    background: var(--brand);
+    color: #FFFFFF;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 32px;
+    cursor: pointer;
+  }
+  .ab-x {
+    flex: none;
+    width: 22px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    color: rgba(255, 255, 255, .5);
+    font-size: 17px;
+    cursor: pointer;
+  }
+
+  /* ---------- 接收指派 ---------- */
+  .rcv-from { margin-bottom: 12px; font-size: 12px; color: var(--ink-3); }
+  .rcv-card { padding: 14px; border-radius: 16px; background: var(--bg-sub); }
+  .rcv-content { font-size: 16px; font-weight: 600; line-height: 1.4; word-break: break-all; }
+  .rcv-card .m { margin-top: 8px; }
+
+  /* ---------- toast ---------- */
+  .toast {
+    position: absolute;
+    left: 50%;
+    bottom: 180px;
+    z-index: 40;
+    max-width: 240px;
+    padding: 9px 16px;
+    border-radius: 10px;
+    background: var(--dark);
+    color: #FFFFFF;
+    font-size: 12.5px;
+    line-height: 1.5;
+    text-align: center;
+    transform: translate(-50%, 8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 520px) {
+    body { align-items: stretch; justify-content: stretch; }
+    .stage { padding: 0; width: 100%; height: 100%; }
+    .device { width: 100%; height: 100%; border: 0; border-radius: 0; }
+    .statusbar { padding-top: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="device" id="device">
+    <!-- 状态栏 -->
+    <div class="statusbar">
+      <span id="sbTime">9:41</span>
+      <span class="sb-right">
+        <svg width="17" height="11" viewBox="0 0 17 11" fill="#161823">
+          <rect x="0" y="7" width="3" height="4" rx="1" />
+          <rect x="4.5" y="5" width="3" height="6" rx="1" />
+          <rect x="9" y="3" width="3" height="8" rx="1" />
+          <rect x="13.5" y="0" width="3" height="11" rx="1" opacity=".32" />
+        </svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+          <rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="#161823" stroke-opacity=".4" />
+          <rect x="2" y="2" width="16" height="8" rx="1.6" fill="#161823" />
+          <path d="M23 4v4c1-.4 1.6-1 1.6-2S24 4.4 23 4z" fill="#161823" fill-opacity=".4" />
+        </svg>
+      </span>
+    </div>
+
+    <!-- 头部 -->
+    <div class="hd">
+      <div class="hd-l" id="openCal">
+        <div class="date-row">
+          <span class="date" id="dateTitle">10月28日</span>
+          <span class="date-wd" id="dateWd">周二</span>
+          <span class="chev"></span>
+        </div>
+        <div class="sub" id="dateSub">2026年 · 今天</div>
+      </div>
+    </div>
+
+    <!-- 日期条 -->
+    <div class="strip" id="strip"></div>
+
+    <!-- 进度 -->
+    <div class="progress">
+      <div class="ptrack"><div class="pfill" id="pfill"></div></div>
+      <div class="pnum" id="pnum">0 / 0</div>
+    </div>
+
+    <!-- 列表 -->
+    <div class="list" id="list"></div>
+
+    <!-- 底部操作 -->
+    <div class="bottombar">
+      <div class="ghost" id="openReceive">好友视角</div>
+      <div class="addbtn" id="openNew"><span class="plus"></span>新待办</div>
+    </div>
+
+    <!-- tabBar -->
+    <div class="tabbar">
+      <div class="tab on">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
+          <path d="M8 12.4l2.6 2.6L16 9.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>待办</span>
+      </div>
+      <div class="tab">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="8.5" r="3.6" stroke="currentColor" stroke-width="1.8" />
+          <path d="M4.8 19.5c.6-3.6 3.6-5.6 7.2-5.6s6.6 2 7.2 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+        <span>我的</span>
+      </div>
+    </div>
+
+    <!-- 遮罩 -->
+    <div class="mask" id="mask"></div>
+
+    <!-- 编辑弹层 -->
+    <div class="sheet" id="editor">
+      <div class="handle"></div>
+      <div class="st" id="editorTitle">新待办</div>
+      <div class="field"><input id="inputContent" maxlength="100" placeholder="要做什么？" /></div>
+
+      <div class="rowline">
+        <div class="lb">优先级</div>
+        <div class="seg" id="segPriority">
+          <div class="seg-item on" data-p="high">高</div>
+          <div class="seg-item" data-p="mid">中</div>
+          <div class="seg-item" data-p="low">低</div>
+        </div>
+      </div>
+
+      <div class="rowline" id="rowDate">
+        <div class="lb">日期</div>
+        <div class="rv"><span class="val" id="rowDateVal">今天</span><span class="chev r"></span></div>
+      </div>
+
+      <div class="rowline">
+        <div class="lb">时间</div>
+        <div class="rv"><input type="time" id="inputTime" style="border:0;background:transparent;font:inherit;color:var(--ink);outline:none;text-align:right" /></div>
+      </div>
+
+      <div class="rowline" id="rowAssign">
+        <div class="lb">指派给好友</div>
+        <div class="rv"><span class="val">转发给他完成</span><span class="chev r"></span></div>
+      </div>
+
+      <div class="hint">计划时间只用于排序和展示；指派后对方接受，任务会出现在他的当天列表里。</div>
+
+      <div class="actions">
+        <div class="btn ghost" id="cancelEdit">取消</div>
+        <div class="btn primary" id="saveEdit">保存</div>
+      </div>
+    </div>
+
+    <!-- 日历弹层 -->
+    <div class="sheet" id="calendar">
+      <div class="handle"></div>
+      <div class="cal-head">
+        <div class="cal-nav" id="calPrev">‹</div>
+        <div class="cal-title" id="calTitle">2026年10月</div>
+        <div class="cal-nav" id="calNext">›</div>
+      </div>
+      <div class="cal-wd">
+        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="pk-foot"><div class="btn ghost" id="goToday">回到今天</div></div>
+    </div>
+
+    <!-- 接收指派弹层 -->
+    <div class="sheet" id="receive">
+      <div class="handle"></div>
+      <div class="st">好友请你完成</div>
+      <div class="rcv-from"><b>阿哲</b> 指派给你</div>
+      <div class="rcv-card">
+        <div class="rcv-content">帮我把阳台的花浇一下</div>
+        <div class="m">
+          <span class="tag low">低</span>
+          <span class="meta" id="rcvDate">今天</span>
+        </div>
+      </div>
+      <div class="hint">接受后会出现在你这一天的待办里，完成后对方能看到。</div>
+      <div class="actions">
+        <div class="btn ghost" id="rejectReceive">先不了</div>
+        <div class="btn primary" id="acceptReceive">接受</div>
+      </div>
+    </div>
+
+    <!-- 指派成功浮条 -->
+    <div class="assign-bar" id="assignBar">
+      <div class="ab-main">
+        <div class="ab-t">已生成指派</div>
+        <div class="ab-s" id="assignText">把任务转发给好友，他接受后出现在他的列表</div>
+      </div>
+      <div class="ab-btn" id="sendAssign">发送给好友</div>
+      <div class="ab-x" id="closeAssign">×</div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<script>
+  /* ------------------- 日期工具 ------------------- */
+  const pad2 = n => (n < 10 ? '0' + n : '' + n)
+  const ymd = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())
+  const addDays = (d, n) => {
+    const t = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    t.setDate(t.getDate() + n)
+    return t
+  }
+  const parseYmd = s => {
+    const p = s.split('-')
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]))
+  }
+  const WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+  const TODAY = new Date()
+  const TODAY_STR = ymd(TODAY)
+
+  /* ------------------- 数据 ------------------- */
+  const state = {
+    date: TODAY_STR,
+    editingId: null,
+    draftPriority: 'high',
+    calYear: TODAY.getFullYear(),
+    calMonth: TODAY.getMonth() + 1,
+    items: [
+      { id: 't1', date: TODAY_STR, content: '给妈妈买降压药', priority: 'high', time: '09:30', done: false },
+      { id: 't2', date: TODAY_STR, content: '把季度报表交给财务', priority: 'mid', time: '14:00', done: false },
+      { id: 't3', date: TODAY_STR, content: '回复房东关于续租的消息', priority: 'mid', time: '', done: false },
+      { id: 't4', date: TODAY_STR, content: '健身 30 分钟', priority: 'low', time: '19:30', done: false },
+      { id: 't5', date: TODAY_STR, content: '取快递', priority: 'low', time: '', done: true }
+    ]
+  }
+
+  const RANK = { high: 0, mid: 1, low: 2 }
+  const LABEL = { high: '高', mid: '中', low: '低' }
+
+  const $ = id => document.getElementById(id)
+  const device = $('device')
+
+  /* ------------------- 渲染 ------------------- */
+  function renderStrip() {
+    const strip = $('strip')
+    let html = ''
+    for (let i = -3; i <= 10; i++) {
+      const d = addDays(TODAY, i)
+      const ds = ymd(d)
+      const cls = ['day', ds === state.date ? 'sel' : '', hasTodo(ds) ? 'has' : ''].join(' ')
+      html += '<div class="' + cls + '" data-date="' + ds + '">' +
+        '<span class="wd">' + WEEK[d.getDay()].replace('周', '') + '</span>' +
+        '<span class="dn">' + d.getDate() + '</span>' +
+        '<span class="dot"></span></div>'
+    }
+    strip.innerHTML = html
+  }
+
+  function hasTodo(ds) {
+    return state.items.some(t => t.date === ds)
+  }
+
+  function renderHeader() {
+    const d = parseYmd(state.date)
+    $('dateTitle').textContent = (d.getMonth() + 1) + '月' + d.getDate() + '日'
+    $('dateWd').textContent = WEEK[d.getDay()]
+    $('dateSub').textContent = d.getFullYear() + '年' + (state.date === TODAY_STR ? ' · 今天' : '')
+  }
+
+  function renderList() {
+    const day = state.items.filter(t => t.date === state.date)
+    const open = day.filter(t => !t.done).sort(cmp)
+    const done = day.filter(t => t.done).sort((a, b) => 0)
+    const list = $('list')
+
+    if (day.length === 0) {
+      list.innerHTML = '<div class="empty"><div class="empty-t">这一天没有待办</div>' +
+        '<div class="empty-s">点下面的按钮记一条</div></div>'
+    } else {
+      list.innerHTML = open.concat(done).map(taskHTML).join('') +
+        (open.length === 0 ? '<div class="all-done">这一天全部完成</div>' : '')
+    }
+
+    const pct = day.length ? Math.round((done.length / day.length) * 100) : 0
+    $('pfill').style.width = pct + '%'
+    $('pnum').textContent = done.length + ' / ' + day.length
+  }
+
+  function cmp(a, b) {
+    if (RANK[a.priority] !== RANK[b.priority]) return RANK[a.priority] - RANK[b.priority]
+    if (a.time && b.time) return a.time < b.time ? -1 : 1
+    if (a.time) return -1
+    if (b.time) return 1
+    return 0
+  }
+
+  function taskHTML(t) {
+    const meta = []
+    meta.push('<span class="tag ' + t.priority + '">' + LABEL[t.priority] + '</span>')
+    if (t.time) meta.push('<span class="meta">' + t.time + '</span>')
+    if (t.from) meta.push('<span class="from">来自 ' + t.from + '</span>')
+
+    return '<div class="task ' + (t.done ? 'done' : '') + '" data-id="' + t.id + '">' +
+      '<div class="cb-hit" data-toggle="' + t.id + '"><div class="cb">' +
+      '<svg width="13" height="13" viewBox="0 0 14 14" fill="none">' +
+      '<path d="M2.5 7.4l3 3L11.5 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      '</div></div>' +
+      '<div class="task-main"><div class="t">' + escapeHTML(t.content) + '</div>' +
+      '<div class="m">' + meta.join('') + '</div></div></div>'
+  }
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+  }
+
+  function renderAll() {
+    renderHeader()
+    renderStrip()
+    renderList()
+  }
+
+  /* ------------------- 交互：列表 ------------------- */
+  document.addEventListener('click', e => {
+    const toggle = e.target.closest('[data-toggle]')
+    if (toggle) {
+      e.stopPropagation()
+      const id = toggle.getAttribute('data-toggle')
+      const item = state.items.find(t => t.id === id)
+      if (item) {
+        item.done = !item.done
+        renderList()
+        if (item.done) toast('已完成，还剩 ' + state.items.filter(t => t.date === state.date && !t.done).length + ' 项')
+      }
+      return
+    }
+
+    const day = e.target.closest('.day')
+    if (day) {
+      state.date = day.getAttribute('data-date')
+      renderAll()
+      return
+    }
+
+    const cell = e.target.closest('.cell')
+    if (cell && !cell.classList.contains('blank')) {
+      state.date = cell.getAttribute('data-date')
+      closeSheets()
+      renderAll()
+      return
+    }
+
+    const task = e.target.closest('.task')
+    if (task) openEditor(task.getAttribute('data-id'))
+  })
+
+  /* ------------------- 弹层控制 ------------------- */
+  let openSheetEl = null
+
+  function openSheet(el) {
+    openSheetEl = el
+    el.classList.add('on')
+    $('mask').classList.add('on')
+  }
+
+  function closeSheets() {
+    if (openSheetEl) openSheetEl.classList.remove('on')
+    openSheetEl = null
+    $('mask').classList.remove('on')
+  }
+
+  $('mask').addEventListener('click', closeSheets)
+
+  /* ------------------- 编辑 ------------------- */
+  function openEditor(id) {
+    const item = id ? state.items.find(t => t.id === id) : null
+    state.editingId = item ? item.id : null
+    $('editorTitle').textContent = item ? '编辑待办' : '新待办'
+    $('inputContent').value = item ? item.content : ''
+    $('inputTime').value = item ? item.time : ''
+    setPriority(item ? item.priority : 'high')
+    updateRowDate(item ? item.date : (state.date < TODAY_STR ? TODAY_STR : state.date))
+    openSheet($('editor'))
+    if (!item) setTimeout(() => $('inputContent').focus(), 280)
+  }
+
+  function setPriority(p) {
+    state.draftPriority = p
+    Array.from($('segPriority').children).forEach(el => {
+      el.classList.toggle('on', el.getAttribute('data-p') === p)
+    })
+  }
+
+  function updateRowDate(ds) {
+    state.draftDate = ds
+    const d = parseYmd(ds)
+    $('rowDateVal').textContent = ds === TODAY_STR
+      ? '今天 · ' + (d.getMonth() + 1) + '月' + d.getDate() + '日'
+      : (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + WEEK[d.getDay()]
+  }
+
+  $('segPriority').addEventListener('click', e => {
+    const item = e.target.closest('.seg-item')
+    if (item) setPriority(item.getAttribute('data-p'))
+  })
+
+  $('openNew').addEventListener('click', () => openEditor(null))
+  $('cancelEdit').addEventListener('click', closeSheets)
+
+  $('saveEdit').addEventListener('click', () => {
+    const content = $('inputContent').value.trim()
+    if (!content) { toast('先写下要做什么'); return }
+
+    const time = $('inputTime').value
+    const date = state.draftDate || TODAY_STR
+
+    if (state.editingId) {
+      const item = state.items.find(t => t.id === state.editingId)
+      item.content = content
+      item.priority = state.draftPriority
+      item.date = date
+      item.time = time
+    } else {
+      state.items.push({
+        id: 'n' + Date.now(),
+        date,
+        content,
+        priority: state.draftPriority,
+        time,
+        done: false
+      })
+    }
+
+    state.date = date
+    closeSheets()
+    renderAll()
+    toast('已保存')
+  })
+
+  /* ------------------- 日历 ------------------- */
+  $('openCal').addEventListener('click', () => {
+    const d = parseYmd(state.date)
+    state.calYear = d.getFullYear()
+    state.calMonth = d.getMonth() + 1
+    buildCalendar()
+    openSheet($('calendar'))
+  })
+
+  $('rowDate').addEventListener('click', () => {
+    closeSheets()
+    const d = parseYmd(state.draftDate || TODAY_STR)
+    state.calYear = d.getFullYear()
+    state.calMonth = d.getMonth() + 1
+    state.calTarget = 'draft'
+    buildCalendar()
+    openSheet($('calendar'))
+  })
+
+  function buildCalendar() {
+    const y = state.calYear
+    const m = state.calMonth
+    $('calTitle').textContent = y + '年' + m + '月'
+
+    const firstDow = new Date(y, m - 1, 1).getDay()
+    const days = new Date(y, m, 0).getDate()
+    const cells = []
+
+    for (let i = 0; i < firstDow; i++) cells.push('<div class="cell blank"></div>')
+    for (let d = 1; d <= days; d++) {
+      const ds = y + '-' + pad2(m) + '-' + pad2(d)
+      const cls = ['cell', ds === state.date ? 'sel' : '', ds === TODAY_STR ? 'today' : ''].join(' ')
+      cells.push('<div class="' + cls + '" data-date="' + ds + '">' + d +
+        (hasTodo(ds) ? '<span class="pdot"></span>' : '') + '</div>')
+    }
+    $('calGrid').innerHTML = cells.join('')
+  }
+
+  $('calPrev').addEventListener('click', () => {
+    state.calMonth -= 1
+    if (state.calMonth < 1) { state.calMonth = 12; state.calYear -= 1 }
+    buildCalendar()
+  })
+
+  $('calNext').addEventListener('click', () => {
+    state.calMonth += 1
+    if (state.calMonth > 12) { state.calMonth = 1; state.calYear += 1 }
+    buildCalendar()
+  })
+
+  $('goToday').addEventListener('click', () => {
+    state.date = TODAY_STR
+    closeSheets()
+    renderAll()
+  })
+
+  // 日历被「日期」行调用时，选中的日期要回填到草稿
+  $('calGrid').addEventListener('click', e => {
+    const cell = e.target.closest('.cell')
+    if (!cell || cell.classList.contains('blank')) return
+    const ds = cell.getAttribute('data-date')
+    if (state.calTarget === 'draft') {
+      updateRowDate(ds)
+      state.calTarget = ''
+      buildCalendar()
+      openSheet($('editor'))
+    }
+  })
+
+  /* ------------------- 指派 ------------------- */
+  $('rowAssign').addEventListener('click', () => {
+    const content = $('inputContent').value.trim()
+    if (!content) { toast('先写下要做什么'); return }
+    $('saveEdit').click()
+    $('assignText').textContent = content
+    $('assignBar').classList.add('on')
+  })
+
+  $('closeAssign').addEventListener('click', () => $('assignBar').classList.remove('on'))
+
+  $('sendAssign').addEventListener('click', () => {
+    $('assignBar').classList.remove('on')
+    toast('已发送给好友，等他接受')
+  })
+
+  /* ------------------- 接收指派 ------------------- */
+  $('openReceive').addEventListener('click', () => {
+    $('rcvDate').textContent = '今天'
+    openSheet($('receive'))
+  })
+
+  $('rejectReceive').addEventListener('click', closeSheets)
+
+  $('acceptReceive').addEventListener('click', () => {
+    if (!state.items.some(t => t.id === 'r1')) {
+      state.items.push({
+        id: 'r1',
+        date: state.date,
+        content: '帮我把阳台的花浇一下',
+        priority: 'low',
+        time: '',
+        done: false,
+        from: '阿哲'
+      })
+    }
+    closeSheets()
+    renderAll()
+    toast('已加进你的待办')
+  })
+
+  /* ------------------- toast ------------------- */
+  let toastTimer = null
+  function toast(text) {
+    const el = $('toast')
+    el.textContent = text
+    el.classList.add('on')
+    clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => el.classList.remove('on'), 1900)
+  }
+
+  /* ------------------- 启动 ------------------- */
+  function tick() {
+    const d = new Date()
+    $('sbTime').textContent = d.getHours() + ':' + pad2(d.getMinutes())
+  }
+  tick()
+  setInterval(tick, 30000)
+
+  updateRowDate(state.date)
+  renderAll()
+
+  // 截图与直链分享时的固定状态：?s=editor / ?s=receive / ?s=assign
+  const shot = new URLSearchParams(location.search).get('s')
+  closeSheets()
+  if (shot === 'editor') {
+    setTimeout(() => openEditor(null), 140)
+  } else if (shot === 'receive') {
+    setTimeout(() => openSheet($('receive')), 140)
+  } else if (shot === 'assign') {
+    setTimeout(() => {
+      $('assignText').textContent = '把季度报表交给财务'
+      $('assignBar').classList.add('on')
+    }, 120)
+  }
+</script>
+</body>
+</html>
